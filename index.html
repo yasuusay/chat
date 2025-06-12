@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>感謝日記</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+    body {
+      font-family: 'Roboto', sans-serif;
+      max-width: 640px;
+      margin: 30px auto;
+      padding: 15px;
+      background: #f5f7fa;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #1976d2;
+      margin-bottom: 24px;
+    }
+    #login-div, #diary-div {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      margin-bottom: 30px;
+    }
+    input, textarea {
+      font-size: 16px;
+      padding: 12px 14px;
+      margin: 8px 0 16px 0;
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1.8px solid #cfd8dc;
+      transition: border-color 0.3s;
+      outline-color: #1976d2;
+      resize: vertical;
+      font-family: 'Roboto', sans-serif;
+    }
+    input:focus, textarea:focus {
+      border-color: #1976d2;
+    }
+    button {
+      font-weight: 600;
+      font-size: 16px;
+      padding: 12px 0;
+      margin: 8px 6px 8px 0;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+      font-family: 'Roboto', sans-serif;
+    }
+    #login-btn, #signup-btn {
+      width: 48%;
+      background-color: #1976d2;
+      color: white;
+    }
+    #login-btn:hover, #signup-btn:hover {
+      background-color: #115293;
+    }
+    #google-login-btn {
+      background-color: #db4437;
+      color: white;
+      width: 100%;
+      margin-top: 12px;
+    }
+    #google-login-btn:hover {
+      background-color: #a3332a;
+    }
+    #logout-btn {
+      background-color: #777;
+      color: white;
+      float: right;
+      width: 100px;
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    #logout-btn:hover {
+      background-color: #555;
+    }
+    #submit-btn {
+      background-color: #1976d2;
+      color: white;
+      width: 100%;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    #submit-btn:hover {
+      background-color: #115293;
+    }
+    #calendar {
+      margin-bottom: 30px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      user-select: none;
+    }
+    #calendar span {
+      font-weight: 700;
+      text-align: center;
+      color: #1976d2;
+      padding-bottom: 6px;
+      font-size: 14px;
+      border-bottom: 2px solid #1976d2;
+      user-select: none;
+    }
+    #calendar button {
+      width: 100%;
+      padding: 10px 0;
+      border-radius: 50%;
+      border: 1.8px solid transparent;
+      background-color: transparent;
+      color: #1976d2;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background-color 0.3s,
+        border-color 0.3s,
+        color 0.3s;
+      box-sizing: border-box;
+      font-size: 15px;
+      user-select: none;
+    }
+    #calendar button:hover {
+      background-color: #bbdefb;
+    }
+    #calendar button.selected {
+      background-color: #1976d2;
+      color: white;
+      border-color: #1976d2;
+      font-weight: 700;
+      box-shadow: 0 0 8px rgba(25, 118, 210, 0.6);
+    }
+    #selected-date-title {
+      font-weight: 700;
+      margin-bottom: 16px;
+      font-size: 18px;
+      color: #333;
+    }
+    #diary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #diary-list li {
+      background: #e3f2fd;
+      margin-bottom: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      position: relative;
+      box-shadow: 0 1.5px 6px rgba(25, 118, 210, 0.2);
+      font-size: 16px;
+      color: #0d47a1;
+      white-space: pre-wrap;
+    }
+    .btn-edit, .btn-delete {
+      position: absolute;
+      top: 12px;
+      font-size: 14px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      transition: background-color 0.25s;
+      font-family: 'Roboto', sans-serif;
+    }
+    .btn-edit {
+      right: 70px;
+      background-color: #43a047;
+      color: white;
+      box-shadow: 0 1.5px 5px rgba(67, 160, 71, 0.6);
+    }
+    .btn-edit:hover {
+      background-color: #2e7d32;
+    }
+    .btn-delete {
+      right: 12px;
+      background-color: #e53935;
+      color: white;
+      box-shadow: 0 1.5px 5px rgba(229, 57, 53, 0.6);
+    }
+    .btn-delete:hover {
+      background-color: #b71c1c;
+    }
+    /* Clear floats */
+    #logout-btn::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+  </style>
+</head>
+<body>
+  <h1>感謝日記</h1>
+
+  <!-- ログインフォーム -->
+  <div id="login-div">
+    <h2>ログイン</h2>
+    <input type="email" id="login-email" placeholder="メールアドレス" />
+    <input type="password" id="login-password" placeholder="パスワード" />
+    <button id="login-btn">ログイン</button>
+    <button id="signup-btn">新規登録</button>
+    <button id="google-login-btn">Googleでログイン</button>
+  </div>
+
+  <!-- 日記投稿フォーム -->
+  <div id="diary-div" style="display:none;">
+    <div id="calendar"></div>
+
+    <h2 id="selected-date-title">日付を選択してください</h2>
+
+    <textarea id="gratitude-text" placeholder="今日の感謝を書く" rows="3"></textarea>
+    <button id="submit-btn">投稿</button>
+    <button id="logout-btn">ログアウト</button>
+
+    <h3>その日の投稿</h3>
+    <ul id="diary-list"></ul>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      orderBy,
+      getDocs,
+      doc,
+      updateDoc,
+      deleteDoc,
+      serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWFs3G2ZbLQ_hYvzD6sAnqWWMbROSFnEs",
+      authDomain: "journal-app-ea1e8.firebaseapp.com",
+      projectId: "journal-app-ea1e8",
+      storageBucket: "journal-app-ea1e8.appspot.com",
+      messagingSenderId: "774648692456",
+      appId: "1:774648692456:web:ffb70d632e62c6cd9f935d",
+    };
+
+    // Firebase初期化
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // DOM
+    const loginDiv = document.getElementById("login-div");
+    const diaryDiv = document.getElementById("diary-div");
+    const loginEmail = document.getElementById("login-email");
+    const loginPassword = document.getElementById("login-password");
+    const loginBtn = document.getElementById("login-btn");
+    const signupBtn = document.getElementById("signup-btn");
+    const googleLoginBtn = document.getElementById("google-login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const gratitudeText = document.getElementById("gratitude-text");
+    const diaryList = document.getElementById("diary-list");
+    const calendarDiv = document.getElementById("calendar");
+    const selectedDateTitle = document.getElementById("selected-date-title");
+
+    let editingDocId = null; // 編集中の投稿ID
+    let selectedDate = null; // カレンダーで選択中の日付（yyyy-mm-dd）
+
+    // Googleプロバイダ
+    const provider = new GoogleAuthProvider();
+
+    // --- 認証状態監視 ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginDiv.style.display = "none";
+        diaryDiv.style.display = "block";
+        buildCalendar(); // カレンダー作成
+        selectedDate = null;
+        selectedDateTitle.textContent = "日付を選択してください";
+        diaryList.innerHTML = "";
+        gratitudeText.value = "";
+        submitBtn.textContent = "投稿";
+      } else {
+        loginDiv.style.display = "block";
+        diaryDiv.style.display = "none";
+      }
+    });
+
+    // --- ログイン・新規登録 ---
+    signupBtn.addEventListener("click", () => {
+      const email = loginEmail.value;
+      const password = loginPassword.value;
+      createUserWithEmailAndPassword(auth, email, password).catch((err) =>
+        alert(err.message)
+      );
+    });
+
+    loginBtn.addEventListener("click", () => {
+      const email = loginEmail.value;
+      const password = loginPassword.value;
+      signInWithEmailAndPassword(auth, email, password).catch((err) =>
+        alert(err.message)
+      );
+    });
+
+    googleLoginBtn.addEventListener("click", () => {
+      signInWithPopup(auth, provider).catch((err) => alert(err.message));
+    });
+
+    // --- ログアウト ---
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth);
+    });
+
+    // --- カレンダー作成 ---
+    function buildCalendar() {
+      calendarDiv.innerHTML = "";
+      const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+      dayNames.forEach((d) => {
+        const span = document.createElement("span");
+        span.textContent = d;
+        calendarDiv.appendChild(span);
+      });
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      // 今月の1日
+      const firstDay = new Date(year, month, 1);
+      // 1日の曜日(0=日曜〜6=土曜)
+      const firstDayWeekday = firstDay.getDay();
+      // 今月の日数
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // 先月の日数
+      const prevMonthDays = new Date(year, month, 0).getDate();
+
+      // 空白の日（先月の日の一部）を入れる
+      for (let i = 0; i < firstDayWeekday; i++) {
+        const btn = document.createElement("button");
+        btn.disabled = true;
+        btn.style.visibility = "hidden";
+        calendarDiv.appendChild(btn);
+      }
+
+      // 日付ボタン作成
+      for (let d = 1; d <= daysInMonth; d++) {
+        const btn = document.createElement("button");
+        btn.textContent = d;
+        btn.dataset.date = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        btn.addEventListener("click", () => {
+          selectDate(btn.dataset.date);
+        });
+        calendarDiv.appendChild(btn);
+      }
+    }
+
+    // --- 日付選択処理 ---
+    function selectDate(dateStr) {
+      selectedDate = dateStr;
+      selectedDateTitle.textContent = `選択中の日付: ${dateStr}`;
+
+      // カレンダーのボタンにselectedクラス付与/除去
+      Array.from(calendarDiv.querySelectorAll("button")).forEach((btn) => {
+        if (btn.dataset.date === dateStr) {
+          btn.classList.add("selected");
+        } else {
+          btn.classList.remove("selected");
+        }
+      });
+
+      // 投稿を読み込み
+      loadDiaryForDate();
+      gratitudeText.value = "";
+      editingDocId = null;
+      submitBtn.textContent = "投稿";
+    }
+
+    // --- 日記投稿・編集 ---
+    submitBtn.addEventListener("click", async () => {
+      if (!selectedDate) {
+        alert("まず日付を選択してください。");
+        return;
+      }
+      const text = gratitudeText.value.trim();
+      if (!text) {
+        alert("感謝の言葉を入力してください。");
+        return;
+      }
+      try {
+        if (editingDocId) {
+          // 編集モード
+          const docRef = doc(db, "posts", editingDocId);
+          await updateDoc(docRef, { text });
+          editingDocId = null;
+          submitBtn.textContent = "投稿";
+        } else {
+          // 新規投稿
+          await addDoc(collection(db, "posts"), {
+            uid: auth.currentUser.uid,
+            date: selectedDate,
+            text,
+            createdAt: serverTimestamp(),
+          });
+        }
+        gratitudeText.value = "";
+        loadDiaryForDate();
+      } catch (error) {
+        alert("投稿に失敗しました：" + error.message);
+      }
+    });
+
+    // --- 選択日付の投稿一覧取得 ---
+    async function loadDiaryForDate() {
+      diaryList.innerHTML = "";
+      if (!selectedDate) return;
+
+      const q = query(
+        collection(db, "posts"),
+        where("uid", "==", auth.currentUser.uid),
+        where("date", "==", selectedDate),
+        orderBy("createdAt", "desc")
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        diaryList.innerHTML = `<li>まだ投稿がありません。</li>`;
+        return;
+      }
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        li.textContent = data.text;
+
+        // 編集ボタン
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "編集";
+        editBtn.className = "btn-edit";
+        editBtn.addEventListener("click", () => {
+          gratitudeText.value = data.text;
+          editingDocId = docSnap.id;
+          submitBtn.textContent = "更新";
+        });
+
+        // 削除ボタン
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "削除";
+        deleteBtn.className = "btn-delete";
+        deleteBtn.addEventListener("click", async () => {
+          if (confirm("本当に削除しますか？")) {
+            await deleteDoc(doc(db, "posts", docSnap.id));
+            if (editingDocId === docSnap.id) {
+              editingDocId = null;
+              gratitudeText.value = "";
+              submitBtn.textContent = "投稿";
+            }
+            loadDiaryForDate();
+          }
+        });
+
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        diaryList.appendChild(li);
+      });
+    }
+
+  </script>
+</body>
+</html>
