@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>感謝日記</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      background: #fff;
+      margin: 2rem;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      max-width: 600px;
+      width: 100%;
+    }
+    h1, h2, h3 {
+      color: #333;
+      text-align: center;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fafafa;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus {
+      border-color: #3f51b5;
+      outline: none;
+      background: #fff;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      margin: 0.3rem;
+      border: none;
+      border-radius: 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .btn-primary { background: #3f51b5; color: #fff; }
+    .btn-primary:hover { background: #303f9f; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .btn-secondary { background: #009688; color: #fff; }
+    .btn-secondary:hover { background: #00796b; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .btn-danger { background: #f44336; color: #fff; }
+    .btn-danger:hover { background: #d32f2f; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: #f9f9f9;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .diary-text { flex: 1; margin-right: 10px; }
+    .button-group { display: flex; gap: 0.3rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>感謝日記</h1>
+
+    <div id="login-div">
+      <h2>ログイン</h2>
+      <input type="email" id="login-email" placeholder="メールアドレス" />
+      <input type="password" id="login-password" placeholder="パスワード" />
+      <button id="login-btn" class="btn-primary">ログイン</button>
+      <button id="signup-btn" class="btn-secondary">新規登録</button><br><br>
+      <button id="google-login-btn" class="btn-secondary">Googleでログイン</button>
+    </div>
+
+    <div id="diary-div" style="display:none;">
+      <h2>今日の感謝</h2>
+      <textarea id="gratitude-text" placeholder="今日の感謝を書く"></textarea>
+      <button id="submit-btn" class="btn-primary">投稿</button>
+      <button id="logout-btn" class="btn-secondary">ログアウト</button>
+
+      <h3>カレンダー</h3>
+      <input type="text" id="calendar" placeholder="日付を選択" />
+      <ul id="selected-day-list"></ul>
+
+      <h3>過去の日記</h3>
+      <ul id="diary-list"></ul>
+    </div>
+  </div>
+
+  <!-- Firebase SDK & flatpickr -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+      signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import {
+      getFirestore, collection, query, where, orderBy, getDocs,
+      addDoc, updateDoc, deleteDoc, doc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWFs3G2ZbLQ_hYvzD6sAnqWWMbROSFnEs",
+      authDomain: "journal-app-ea1e8.firebaseapp.com",
+      projectId: "journal-app-ea1e8",
+      storageBucket: "journal-app-ea1e8.appspot.com",
+      messagingSenderId: "774648692456",
+      appId: "1:774648692456:web:ffb70d632e62c6cd9f935d",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const loginDiv = document.getElementById("login-div");
+    const diaryDiv = document.getElementById("diary-div");
+    const loginEmail = document.getElementById("login-email");
+    const loginPassword = document.getElementById("login-password");
+    const loginBtn = document.getElementById("login-btn");
+    const signupBtn = document.getElementById("signup-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const gratitudeText = document.getElementById("gratitude-text");
+    const diaryList = document.getElementById("diary-list");
+    const googleLoginBtn = document.getElementById("google-login-btn");
+    const calendar = document.getElementById("calendar");
+    const selectedList = document.getElementById("selected-day-list");
+
+    const provider = new GoogleAuthProvider();
+    let editingDocId = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginDiv.style.display = "none";
+        diaryDiv.style.display = "block";
+        loadDiaries(user.uid);
+      } else {
+        loginDiv.style.display = "block";
+        diaryDiv.style.display = "none";
+        editingDocId = null;
+        gratitudeText.value = "";
+        submitBtn.textContent = "投稿";
+      }
+    });
+
+    signupBtn.addEventListener("click", async () => {
+      try {
+        await createUserWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+      } catch (e) { alert(e.message); }
+    });
+
+    loginBtn.addEventListener("click", async () => {
+      try {
+        await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
+      } catch (e) { alert(e.message); }
+    });
+
+    googleLoginBtn.addEventListener("click", async () => {
+      try { await signInWithPopup(auth, provider); }
+      catch (e) { alert(e.message); }
+    });
+
+    logoutBtn.addEventListener("click", async () => { await signOut(auth); });
+
+    submitBtn.addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const text = gratitudeText.value.trim();
+      if (text === "") return;
+
+      const today = new Date();
+      const yyyyMMdd = today.toISOString().split('T')[0];
+
+      try {
+        if (editingDocId) {
+          const docRef = doc(db, "diaries", editingDocId);
+          await updateDoc(docRef, { text, timestamp: serverTimestamp(), date: yyyyMMdd });
+          editingDocId = null;
+          submitBtn.textContent = "投稿";
+        } else {
+          await addDoc(collection(db, "diaries"), { uid: user.uid, text, timestamp: serverTimestamp(), date: yyyyMMdd });
+        }
+        gratitudeText.value = "";
+        loadDiaries(user.uid);
+      } catch (e) { alert(e.message); }
+    });
+
+    async function loadDiaries(uid) {
+      diaryList.innerHTML = "";
+      const q = query(collection(db, "diaries"), where("uid", "==", uid), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        const textDiv = document.createElement("div");
+        textDiv.className = "diary-text";
+        textDiv.textContent = `[${data.date}] ${data.text}`;
+
+        const btnGroup = document.createElement("div");
+        btnGroup.className = "button-group";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "編集";
+        editBtn.className = "btn-secondary";
+        editBtn.addEventListener("click", () => {
+          gratitudeText.value = data.text;
+          editingDocId = docSnap.id;
+          submitBtn.textContent = "更新";
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "削除";
+        deleteBtn.className = "btn-danger";
+        deleteBtn.addEventListener("click", async () => {
+          if (confirm("本当に削除しますか？")) {
+            await deleteDoc(doc(db, "diaries", docSnap.id));
+            loadDiaries(uid);
+          }
+        });
+
+        btnGroup.appendChild(editBtn);
+        btnGroup.appendChild(deleteBtn);
+        li.appendChild(textDiv);
+        li.appendChild(btnGroup);
+        diaryList.appendChild(li);
+      });
+    }
+
+    // カレンダー初期化
+    flatpickr(calendar, {
+      dateFormat: "Y-m-d",
+      onChange: async function(selectedDates, dateStr) {
+        const user = auth.currentUser;
+        if (!user) return;
+        await loadDiariesByDate(user.uid, dateStr);
+      }
+    });
+
+    async function loadDiariesByDate(uid, dateStr) {
+      selectedList.innerHTML = "";
+      const q = query(collection(db, "diaries"), where("uid", "==", uid), where("date", "==", dateStr), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        selectedList.innerHTML = "<li>この日には投稿がありません。</li>";
+        return;
+      }
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        li.textContent = data.text;
+        selectedList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
